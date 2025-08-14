@@ -1,0 +1,2 @@
+# Pokemon Battle Simulator Requirements
+# Add any additional dependencies here as needed
