@@ -1,19 +1,12 @@
+from dataclasses import dataclass
 import random
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union
+
+from actions import BattleAction, SwitchAction, Action
 from player import Player
 from pokemon import Pokemon
 from movedex import Move, MoveCategory, MoveType
 from pokemondex import PokemonType
-
-
-class BattleAction:
-    """Represents an action taken in battle"""
-    
-    def __init__(self, player: Player, move: Move, target: Pokemon):
-        self.player = player
-        self.move = move
-        self.target = target
-        self.priority = move.priority
 
 
 class TypeEffectiveness:
@@ -94,21 +87,30 @@ class BattleManager:
         
         # Get moves from both players
         actions = []
-        
+        # Determine who needs to choose
+        p1_choose: bool = self.player2.active_pokemon is not None or self.player1.active_pokemon is None
+        p2_choose: bool = self.player1.active_pokemon is not None or self.player2.active_pokemon is None
+
         p1_active = self.player1.active_pokemon
         p2_active = self.player2.active_pokemon
-        
-        if p1_active and p2_active:
-            move1 = self.player1.choose_move()
+
+        if p1_choose:
+            move1 = self.choose_move(self.player1)
+            # TODO: Add target choosing.
+            if type(move1) is BattleAction:
+                move1.target = p2_active
             if move1:
-                actions.append(BattleAction(self.player1, move1, p2_active))
-            
-            move2 = self.player2.choose_move()
+                actions.append(move1)
+
+        if p2_choose:
+            move2 = self.choose_move(self.player2)
+            if type(move2) is BattleAction:
+                move2.target = p1_active
             if move2:
-                actions.append(BattleAction(self.player2, move2, p1_active))
+                actions.append(move2)
         
         # Sort actions by priority (higher priority first), then by speed
-        actions.sort(key=lambda a: (a.priority, a.player.active_pokemon.speed), reverse=True)
+        actions.sort(key=lambda a: a.get_priority(), reverse=True)
         
         # Execute actions
         for action in actions:
@@ -116,23 +118,72 @@ class BattleManager:
                 self.execute_move(action)
                 
                 # Check for fainted Pokemon after each move
-                self.check_fainted_pokemon()
+                if self.check_fainted_pokemon():
+                    break
     
-    def execute_move(self, action: BattleAction):
+    def choose_move(self, player: Player) -> Optional[Action]:
+        """Let player choose a move for their active Pokemon"""
+        active = player.active_pokemon
+        if not player.has_available_pokemon():
+            return None
+        
+        if active:
+            print(f"\n{player.name}'s {active.species.name} - Available moves:")
+            for i, move in enumerate(active.moves):
+                print(f"{i + 1}. {move}")
+
+        print(f"\n{player.name}'s available pokemon:")
+        for i in player.get_switchable_indices():
+            print(f"{i}. {player.team[i].species.name}")
+
+        while True:
+            try:
+                choice = input(f"Choose either move or switch: ")
+                command, index = choice.split()
+                if command.lower() == 'switch':
+                    index = int(index)
+                    if index in player.get_switchable_indices():
+                        return SwitchAction(player, index)
+                    else:
+                        print("Invalid switch selection!")
+                elif active and command.lower() == 'move':
+                    move_index = int(index) - 1
+                    if 0 <= move_index < len(active.moves):
+                        return BattleAction(player, active.moves[move_index])  # Target will be set later
+                    else:
+                        print("Invalid move selection!")
+                else:
+                    print("Invalid command!")
+            except (ValueError):
+                print("Invalid input!")
+
+    # TODO: Move needs to go into the slot, not the Pokemon
+    def execute_move(self, action: Action):
         """Execute a single move"""
-        attacker = action.player.active_pokemon
-        defender = action.target
-        move = action.move
+        if type(action) is SwitchAction:
+            print("Ok! Come back!")
+            player = action.player
+            new_pokemon = action.pokemon_idx
+            if not player.switch_pokemon(new_pokemon):
+                print(f"{player.name} cannot switch to that Pokemon!")
+            else:
+                print(f"Go! {player.team[new_pokemon].species.name}!")
+        elif type(action) is BattleAction:
+            attacker = action.player.active_pokemon
+            defender = action.target
+            move = action.move
         
-        if not attacker:
-            return
-        
-        print(f"\n{attacker.species.name} used {move.name}!")
-        
-        if move.category == MoveCategory.STATUS:
-            self.execute_status_move(move, attacker, defender)
+            if not attacker or not defender:
+                return
+            
+            print(f"\n{attacker.species.name} used {move.name}!")
+            
+            if move.category == MoveCategory.STATUS:
+                self.execute_status_move(move, attacker, defender)
+            else:
+                self.execute_damage_move(move, attacker, defender)
         else:
-            self.execute_damage_move(move, attacker, defender)
+            raise ValueError("Unknown action type")
     
     def execute_damage_move(self, move: Move, attacker: Pokemon, defender: Pokemon):
         """Execute a damaging move"""
@@ -182,6 +233,7 @@ class BattleManager:
             defense_stat = defender.special_defense
         
         # Basic damage formula (simplified)
+        # TODO: Use the accurate damage formula
         level_factor = (2 * attacker.level / 5 + 2)
         damage = (level_factor * move.power * attack_stat / defense_stat) / 50 + 2
         
@@ -203,27 +255,9 @@ class BattleManager:
         for player in [self.player1, self.player2]:
             if player.active_pokemon and player.active_pokemon.is_fainted:
                 print(f"\n{player.active_pokemon.species.name} fainted!")
-                
-                available = player.get_available_pokemon()
-                if available:
-                    print(f"\n{player.name}, choose your next Pokemon:")
-                    for i, pokemon in enumerate(player.team):
-                        if not pokemon.is_fainted:
-                            print(f"{i + 1}. {pokemon}")
-                    
-                    while True:
-                        try:
-                            choice = input("Choose Pokemon (number): ")
-                            index = int(choice) - 1
-                            if player.switch_pokemon(index):
-                                print(f"{player.name} sent out {player.active_pokemon.species.name}!")
-                                break
-                            else:
-                                print("Invalid choice!")
-                        except (ValueError, KeyboardInterrupt):
-                            print("Invalid input!")
-                else:
-                    print(f"{player.name} has no more Pokemon!")
+                return True
+            else:
+                return False
     
     def get_battle_status(self):
         """Get current battle status"""

@@ -1,6 +1,6 @@
 from typing import List, Optional
+
 from pokemon import Pokemon
-from movedex import Move
 
 
 class Player:
@@ -23,6 +23,9 @@ class Player:
     def get_available_pokemon(self) -> List[Pokemon]:
         """Get all non-fainted Pokemon"""
         return [p for p in self.team if not p.is_fainted]
+
+    def get_switchable_indices(self) -> List[int]:
+        return [i for i, p in enumerate(self.team) if not p.is_fainted and i != self.active_pokemon_index]
     
     def switch_pokemon(self, index: int) -> bool:
         """Switch to a different Pokemon"""
@@ -34,27 +37,6 @@ class Player:
     def has_available_pokemon(self) -> bool:
         """Check if player has any non-fainted Pokemon"""
         return len(self.get_available_pokemon()) > 0
-    
-    def choose_move(self) -> Optional[Move]:
-        """Let player choose a move for their active Pokemon"""
-        active = self.active_pokemon
-        if not active or not active.moves:
-            return None
-        
-        print(f"\n{self.name}'s {active.species.name} - Available moves:")
-        for i, move in enumerate(active.moves):
-            print(f"{i + 1}. {move}")
-        
-        while True:
-            try:
-                choice = input(f"Choose move for {active.species.name} (1-{len(active.moves)}): ")
-                move_index = int(choice) - 1
-                if 0 <= move_index < len(active.moves):
-                    return active.moves[move_index]
-                else:
-                    print("Invalid move selection!")
-            except (ValueError, KeyboardInterrupt):
-                print("Invalid input!")
     
     def __str__(self):
         return f"{self.name} - {len(self.get_available_pokemon())}/{len(self.team)} Pokemon remaining"
