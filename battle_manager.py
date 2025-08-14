@@ -110,6 +110,7 @@ class BattleManager:
                 actions.append(move2)
         
         # Sort actions by priority (higher priority first), then by speed
+        # TODO: Priority of Quick Attack isn't accounted for.
         actions.sort(key=lambda a: a.get_priority(), reverse=True)
         
         # Execute actions
