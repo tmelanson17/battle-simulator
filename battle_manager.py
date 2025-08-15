@@ -116,6 +116,7 @@ class BattleManager:
         # Execute actions
         for action in actions:
             if not self.battle_over and action.player.active_pokemon and not action.player.active_pokemon.is_fainted:
+                print(f"\n{action.player.name}'s turn at {action.get_priority()}")
                 self.execute_move(action)
                 
                 # Check for fainted Pokemon after each move
@@ -150,7 +151,8 @@ class BattleManager:
                 elif active and command.lower() == 'move':
                     move_index = int(index) - 1
                     if 0 <= move_index < len(active.moves):
-                        return BattleAction(player, active.moves[move_index])  # Target will be set later
+                        move = active.moves[move_index]
+                        return BattleAction(player, move, move.priority)  # Target will be set later
                     else:
                         print("Invalid move selection!")
                 else:
