@@ -182,8 +182,8 @@ class PlayerState:
     # Current active Pokemon
     active_mons: List[int]
 
-    def get_available_pokemon(self) -> List[Tuple[int, PokemonState]]:
-        return [(i, self.pk_list[i]) for i in self.in_play if not self.pk_list[i].status == Status.FAINTED and i not in self.active_mons]
+    def get_available_pokemon(self) -> List[int]:
+        return [i for i in self.in_play if not self.pk_list[i].status == Status.FAINTED and i not in self.active_mons]
 
     def get_active_mon(self, slot: int = 0) -> PokemonState:
         if slot < 0 or slot >= len(self.active_mons):

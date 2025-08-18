@@ -91,7 +91,8 @@ class ChooseAction(Action):
         switch_options = battle_state.get_player(self.player).get_available_pokemon()
         if switch_options:
             print("Switch options:")
-            for i, pokemon in switch_options:
+            for i in switch_options:
+                pokemon = battle_state.get_player(self.player).pk_list[i]
                 print(f"{i + 1}. {pokemon.name} (HP: {pokemon.hp}/{pokemon.hp_max})")
         player_state = battle_state.get_player(self.player)
         for active_idx in player_state.active_mons:
@@ -119,6 +120,8 @@ class ChooseAction(Action):
                     choice = input(f"Your choice for mon {i}: ")
                     active_mon = player_state.get_active_mon(i)
                     if choice.startswith("move"):
+                        if active_mon.fainted:
+                            raise ValueError(f"Cannot use moves on {active_mon.name} as it is fainted.")
                         _, move_str = choice.split()
                         move_idx = int(move_str) - 1
                         if active_mon.valid_move(move_idx):
@@ -128,6 +131,8 @@ class ChooseAction(Action):
                                 MoveAction(self.player, move_idx, i, i),
                                 Priority(turn_count, move.move_info.priority if move.move_info else 0, active_mon.speed.current_stat)
                             )
+                        else:
+                            raise ValueError(f"Cannot use move {move_idx + 1} on {active_mon.name}.")
                     elif choice.startswith("switch"):
                         _, switch_str = choice.split()
                         switch_idx = int(switch_str) - 1
