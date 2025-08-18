@@ -12,7 +12,7 @@ class Pokemon:
         self.level = level
         self.moves = moves or []
         self.current_hp = self.max_hp
-        self.status = None  # Future: paralysis, burn, sleep, etc.
+        self.status = "None"  # Future: paralysis, burn, sleep, etc.
         
         # Battle stats (can be modified by moves/abilities)
         self.attack_stage = 0

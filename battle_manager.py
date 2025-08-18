@@ -5,7 +5,7 @@ from typing import List, Tuple, Optional, Union
 from actions import BattleAction, SwitchAction, Action
 from player import Player
 from pokemon import Pokemon
-from movedex import Move, MoveCategory, MoveType
+from movedex import Move, MoveCategory, MoveType, Effect
 from pokemondex import PokemonType
 
 
@@ -180,10 +180,11 @@ class BattleManager:
             
             print(f"\n{attacker.species.name} used {move.name}!")
             
-            if move.category == MoveCategory.STATUS:
-                self.execute_status_move(move, attacker, defender)
-            else:
+            if move.category != MoveCategory.STATUS:
                 self.execute_damage_move(move, attacker, defender)
+            else:
+                self.execute_primary_effect(move, attacker, defender)
+            
         else:
             raise ValueError("Unknown action type")
     
@@ -211,16 +212,25 @@ class BattleManager:
         
         print(f"{defender.species.name} took {damage} damage! ({defender.current_hp}/{defender.max_hp} HP remaining)")
     
-    def execute_status_move(self, move: Move, attacker: Pokemon, defender: Pokemon):
+    def execute_effect(self, effect: Effect, attacker: Pokemon, defender: Pokemon):
         """Execute a status move"""
-        print(f"{move.primary_effect}")
         # Add status move effects here (stat changes, status conditions, etc.)
-        
-        # Example: Agility increases speed
-        if move.name == "Agility":
-            attacker.speed_stage = min(6, attacker.speed_stage + 2)
-            print(f"{attacker.species.name}'s Speed rose sharply!")
-    
+        target, property = effect.property.split('.')
+        if target == "self":
+            target_pokemon = attacker
+        elif target == "target":
+            target_pokemon = defender
+        else:
+            raise ValueError("Unknown target")
+
+        effect.operator.apply(target_pokemon, effect.value)
+        if property == "status":
+            target_pokemon.status = str(effect.value)
+        elif property == "speed":
+            target_pokemon.speed_stage = min(6, target_pokemon.speed_stage + effect.value)
+        else:
+            raise ValueError("Unknown property")
+
     def calculate_damage(self, move: Move, attacker: Pokemon, defender: Pokemon) -> int:
         """Calculate damage dealt by a move"""
         if move.power == 0:
