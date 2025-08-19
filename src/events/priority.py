@@ -1,8 +1,10 @@
 import random 
 
+MAX_PRIORITY=8
+MIN_PRIORITY=-6
+
 class Priority:
-    def __init__(self, turn: int, bracket: int, speed: int):
-        self.turn = turn
+    def __init__(self, bracket: int, speed: int):
         self.bracket = bracket
         self.speed = speed
 
@@ -10,12 +12,10 @@ class Priority:
         # Speed tie resolution.
         if self == other:
             return random.random() > 0.5
-        if self.turn != other.turn:
-            return self.turn < other.turn
         else:
             return (self.bracket, self.speed) > (other.bracket, other.speed)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Priority):
             raise TypeError("Comparisons should be between Priority instances.")
-        return (self.turn, self.bracket, self.speed) == (other.turn, other.bracket, other.speed)
+        return (self.bracket, self.speed) == (other.bracket, other.speed)

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from src.events.event_loop import EventLoop
+from src.events.event_queue import EventQueue
 from src.events.priority import Priority
 from src.state.pokestate import BattleState, PlayerState, PokemonState
 from src.state.pokestate import Player
@@ -8,27 +8,31 @@ from src.state.pokestate_defs import Type, get_effectiveness, calculate_damage
 from src.dex.moves import get_move_by_name, Move 
 
 class Action(ABC):
+    def __init__(self, player: Player):
+        self.player = player
+
     @abstractmethod
-    def execute(self, battle_state: BattleState, event_loop: EventLoop['Action', 'Priority']):
+    def execute(self, battle_state: BattleState, event_loop: EventQueue['Action', 'Priority']):
         pass
 
 class SwitchIn(Action):
     def __init__(self, player: 'Player', new_idx: int):
-        self.player = player
+        super().__init__(player)
         self.pokemon_idx = new_idx
 
-    def execute(self, battle_state: BattleState, event_loop: EventLoop['Action', 'Priority']):
+    def execute(self, battle_state: BattleState, event_loop: EventQueue['Action', 'Priority']):
         battle_state.get_player(self.player).switch_pokemon(0, self.pokemon_idx)
 
 
 class DamageAction(Action):
     def __init__(self, player: 'Player', damage: int, src_idx: int, target_idx: int):
+        super().__init__(player)
         self.player = player
         self.damage = damage
         self.src_idx = src_idx
         self.target_idx = target_idx
     
-    def execute(self, battle_state: BattleState, event_loop: EventLoop['Action', 'Priority']):
+    def execute(self, battle_state: BattleState, event_loop: EventQueue['Action', 'Priority']):
         target_mon = battle_state.get_opponent(self.player).get_active_mon(self.target_idx)
         if target_mon and not target_mon.fainted:
             target_mon.hp = target_mon.hp - self.damage
@@ -38,6 +42,7 @@ class DamageAction(Action):
 
 class MoveAction(Action):
     def __init__(self, player: Player, move_idx: int, src_idx, target_idx):
+        super().__init__(player)
         self.player = player
         self.move_idx = move_idx
         self.src_idx = src_idx
@@ -61,7 +66,7 @@ class MoveAction(Action):
         defensive_stat = target_mon.get_defensive_stat(move.category) 
         return calculate_damage(base_power, offensive_stat, defensive_stat, effectiveness, stab_multiplier)
 
-    def execute(self, battle_state: BattleState, event_loop: EventLoop['Action', 'Priority']):
+    def execute(self, battle_state: BattleState, event_loop: EventQueue['Action', 'Priority']):
         player = battle_state.get_player(self.player)
         move = player.get_active_mon(self.src_idx).moves[self.move_idx]
         if move.disabled:
@@ -74,7 +79,7 @@ class MoveAction(Action):
             if damage > 0:
                 event_loop.add_event(
                     DamageAction(self.player, damage, self.src_idx, self.target_idx),
-                    Priority(0, dex_entry.priority, player.get_active_mon(self.src_idx).speed.current_stat)
+                    Priority(dex_entry.priority, player.get_active_mon(self.src_idx).speed.current_stat)
                 )
             else:
                 print(f"It had no effect on {target.name}.")
@@ -82,9 +87,9 @@ class MoveAction(Action):
 
 class ChooseAction(Action):
     def __init__(self, player: 'Player'):
-        self.player = player 
+        super().__init__(player)
 
-    def execute(self, battle_state: BattleState, event_loop: EventLoop['Action', 'Priority']):
+    def execute(self, battle_state: BattleState, event_loop: EventQueue['Action', 'Priority']):
         print(f"Player {self.player}")
         turn_count = battle_state.turn_count
         # Get options
@@ -106,12 +111,8 @@ class ChooseAction(Action):
                 print(f"  {i + 1}. {move.name} (PP: {move.pp}/{move.pp_max}){disabled}")
         print()
         self.choose_move(player_state, event_loop, turn_count)
-        event_loop.add_event(
-            ChooseAction(self.player),
-            Priority(turn_count + 1, 9, 0)
-        )
 
-    def choose_move(self, player_state: PlayerState, event_loop: EventLoop['Action', 'Priority'], turn_count: int):
+    def choose_move(self, player_state: PlayerState, event_loop: EventQueue['Action', 'Priority'], turn_count: int):
         print(f"Choose one of the above moves (either move <x> or switch <x>)")
         move_success = False
         while not move_success:
@@ -129,7 +130,7 @@ class ChooseAction(Action):
                             move = active_mon.moves[move_idx]
                             event_loop.add_event(
                                 MoveAction(self.player, move_idx, i, i),
-                                Priority(turn_count, move.move_info.priority if move.move_info else 0, active_mon.speed.current_stat)
+                                Priority(move.move_info.priority if move.move_info else 0, active_mon.speed.current_stat)
                             )
                         else:
                             raise ValueError(f"Cannot use move {move_idx + 1} on {active_mon.name}.")
@@ -141,7 +142,7 @@ class ChooseAction(Action):
 
                         event_loop.add_event(
                             SwitchIn(self.player, switch_idx),
-                            Priority(turn_count, 6, active_mon.speed.current_stat)
+                            Priority(6, active_mon.speed.current_stat)
                         )
                     else:
                         raise ValueError(f"Invalid choice: {choice}. Please use 'move <x>' or 'switch <x>'.")
