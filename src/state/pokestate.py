@@ -37,6 +37,9 @@ class MoveState:
             move_info=move
         )
 
+@dataclass
+class StatChange:
+    change: int
 
 @dataclass
 class Stat:
@@ -58,10 +61,13 @@ class Stat:
         return self._base
 
     @base.setter
-    def base(self, value: int):
-        if value < 0:
+    def base(self, value: int|StatChange):
+        if isinstance(value, StatChange):
+            self.boost(value.change)
+        elif value < 0:
             raise ValueError("Base stat cannot be negative")
-        self._base = value
+        else:
+            self._base = value
 
     def __int__(self):
         return self.current_stat
@@ -99,7 +105,7 @@ class PokemonState:
     species: Optional[str] = None # Species name
     type1: Optional[Type] = None # Species type 1,2
     type2: Optional[Type] = None
-    status: Status = Status.NONE # Status condition of the Pokemon
+    _status: Status = Status.NONE # Status condition of the Pokemon
     trapped: bool = False # Volatile conditions (listed one at a time)
     two_turn_move: bool = False # Whether the Pokemon is currently using a two-turn move
     confused: bool = False # Whether the Pokemon is currently confused
@@ -137,13 +143,13 @@ class PokemonState:
     def hp(self, value: int):
         self._hp = max(0, min(value, self.hp_max))
         if self._hp == 0:
-            self.status = Status.FAINTED
-        elif self.status == Status.FAINTED:
-            self.status = Status.NONE
-    
+            self._status = Status.FAINTED
+        elif self._status == Status.FAINTED:
+            self._status = Status.NONE
+
     @property
     def fainted(self) -> bool:
-        return self.status == Status.FAINTED
+        return self._status == Status.FAINTED
 
     def valid_move(self, move_idx: int) -> bool:
         if move_idx < 0 or move_idx >= len(self.moves):
@@ -165,11 +171,27 @@ class PokemonState:
             return self.special_defense.current_stat
         else:
             raise ValueError(f"Unknown move category: {category}")
+
+    @property
+    def status(self) -> Status:
+        return self._status
     
+    @status.setter
+    def status(self, value: str|Status):
+        self._status = Status[value] if isinstance(value, str) else value
 
 class Player(enum.Enum):
     PLAYER_1 = 1
     PLAYER_2 = 2
+
+    @staticmethod
+    def opponent(player: 'Player') -> 'Player':
+        """Get the opponent player"""
+        if player == Player.PLAYER_1:
+            return Player.PLAYER_2
+        elif player == Player.PLAYER_2:
+            return Player.PLAYER_1
+        raise ValueError("Invalid player")
 
 @dataclass
 class PlayerState:
@@ -215,12 +237,8 @@ class BattleState:
             raise ValueError("Invalid player ID")
         
     def get_opponent(self, player_id: Player) -> PlayerState:
-        if player_id == Player.PLAYER_1:
-            return self.player_2
-        elif player_id == Player.PLAYER_2:
-            return self.player_1
-        else:
-            raise ValueError("Invalid player ID")
+        opponent = Player.opponent(player_id)
+        return self.get_player(opponent)
     
     def is_finished(self) -> bool:
         return self.player_1.is_finished() or self.player_2.is_finished()

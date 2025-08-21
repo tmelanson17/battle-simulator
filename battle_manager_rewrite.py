@@ -78,7 +78,7 @@ if __name__ == "__main__":
         ["Squirtle", "Pidgey", "Rattata"],
         [
             ["Thunderbolt", "Quick Attack", "Thunder Wave", "Seismic Toss"],
-            ["Vine Whip", "Tackle", "Razor Leaf"],
+            ["Vine Whip", "Tackle", "Razor Leaf", "Sleep Powder"],
             ["Ember", "Scratch", "Growl", "Leer"]
         ],
         [

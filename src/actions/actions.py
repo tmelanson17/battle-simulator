@@ -4,8 +4,9 @@ from src.events.event_queue import EventQueue
 from src.events.priority import Priority
 from src.state.pokestate import BattleState, PlayerState, PokemonState
 from src.state.pokestate import Player
-from src.state.pokestate_defs import Type, get_effectiveness, calculate_damage
-from src.dex.moves import get_move_by_name, Move 
+from src.state.pokestate_defs import Category, get_effectiveness, calculate_damage
+from src.dex.moves import get_move_by_name, Move
+from src.actions.effects import Effect, from_move
 
 class Action(ABC):
     def __init__(self, player: Player):
@@ -22,7 +23,20 @@ class SwitchIn(Action):
 
     def execute(self, battle_state: BattleState, event_loop: EventQueue['Action', 'Priority']):
         battle_state.get_player(self.player).switch_pokemon(0, self.pokemon_idx)
+    
 
+class EffectAction(Action):
+    def __init__(self, player: 'Player', effect: 'Effect', target_idx: int):
+        super().__init__(player)
+        self.effect = effect
+        self.target_idx = target_idx
+    
+    def execute(self, battle_state: BattleState, event_loop: EventQueue[Action, Priority]):
+        target = battle_state.get_player(self.player).get_active_mon(self.target_idx)
+        if target:
+            # Apply the effect to the target
+            self.effect.apply(target)
+            print(f"Applied {self.effect} to {target.name}!")
 
 class DamageAction(Action):
     def __init__(self, player: 'Player', damage: int, src_idx: int, target_idx: int):
@@ -74,7 +88,10 @@ class MoveAction(Action):
         target = battle_state.get_opponent(self.player).get_active_mon(self.target_idx)
         dex_entry = get_move_by_name(move.name)
         print(f"{player.get_active_mon(self.src_idx).name} used {dex_entry.name} on {target.name}!")
-        if dex_entry:
+        if not dex_entry:
+            raise ValueError(f"Move {move.name} not found in dex....")
+
+        if dex_entry.category != Category.STATUS:
             damage = self.calculate_move_damage(dex_entry, player.get_active_mon(self.src_idx), target)
             if damage > 0:
                 event_loop.add_event(
@@ -83,6 +100,12 @@ class MoveAction(Action):
                 )
             else:
                 print(f"It had no effect on {target.name}.")
+        else:
+            for effect in from_move(dex_entry):
+                event_loop.add_event(
+                    EffectAction(Player.opponent(self.player), effect, self.target_idx),
+                    Priority(dex_entry.priority, player.get_active_mon(self.src_idx).speed.current_stat)
+                )
 
 
 class ChooseAction(Action):

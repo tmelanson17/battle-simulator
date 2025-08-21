@@ -5,7 +5,7 @@ This includes all 165 moves from the original Generation 1 games.
 
 from dataclasses import dataclass
 from typing import Optional, List
-from src.state.pokestate_defs import Type, Move, Category
+from src.state.pokestate_defs import Type, Move, Category, PokemonEffect
 
 # All Generation 1 moves (165 total)
 GEN1_MOVES = [
@@ -92,7 +92,7 @@ GEN1_MOVES = [
     Move("Fire Spin", Type.FIRE, 15, Category.SPECIAL, 70, 24, "Traps the foe in fire for 4-5 turns."),
     Move("Thunder Shock", Type.ELECTRIC, 40, Category.SPECIAL, 100, 48, "An electric attack. May cause paralysis."),
     Move("Thunderbolt", Type.ELECTRIC, 95, Category.SPECIAL, 100, 24, "A powerful electric attack. May cause paralysis."),
-    Move("Thunder Wave", Type.ELECTRIC, None, Category.STATUS, 100, 32, "Paralyzes with electricity."),
+    Move("Thunder Wave", Type.ELECTRIC, None, Category.STATUS, 100, 32, "Paralyzes with electricity.", target_effects=[PokemonEffect("status", "PARALYZED")]),
     Move("Thunder", Type.ELECTRIC, 120, Category.SPECIAL, 70, 16, "A lightning attack. May cause paralysis."),
     Move("Rock Throw", Type.ROCK, 50, Category.PHYSICAL, 90, 24, "Throws rocks at the foe."),
     Move("Earthquake", Type.GROUND, 100, Category.PHYSICAL, 100, 16, "An earthquake that strikes all Pokémon."),
@@ -104,7 +104,7 @@ GEN1_MOVES = [
     Move("Hypnosis", Type.PSYCHIC, None, Category.STATUS, 60, 32, "A hypnotic move that puts the foe to sleep."),
     Move("Meditate", Type.PSYCHIC, None, Category.STATUS, 100, 64, "Raises Attack."),
     Move("Agility", Type.PSYCHIC, None, Category.STATUS, 100, 48, "Sharply raises Speed."),
-    Move("Quick Attack", Type.NORMAL, 40, Category.PHYSICAL, 100, 48, "An extremely fast attack that always strikes first."),
+    Move("Quick Attack", Type.NORMAL, 40, Category.PHYSICAL, 100, 48, "An extremely fast attack that always strikes first.", priority=1),
     Move("Rage", Type.NORMAL, 20, Category.PHYSICAL, 100, 32, "Raises Attack when hit."),
     Move("Teleport", Type.PSYCHIC, None, Category.STATUS, 100, 32, "Warps away from battle."),
     Move("Night Shade", Type.GHOST, None, Category.SPECIAL, 100, 24, "Inflicts damage equal to the user's level."),

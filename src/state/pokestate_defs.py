@@ -1,8 +1,8 @@
 import random
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 class Status(Enum):
     NONE = 0
@@ -81,6 +81,11 @@ class Category(Enum):
     STATUS = 2
 
 @dataclass
+class PokemonEffect:
+    property: str
+    value: str
+
+@dataclass
 class Move:
     """Represents a Pokémon move with its properties."""
     name: str
@@ -91,6 +96,7 @@ class Move:
     pp: int
     description: str
     priority: int = 0
+    target_effects: List[PokemonEffect] = field(default_factory=list)
 
 
 # Do standard damage calculation
