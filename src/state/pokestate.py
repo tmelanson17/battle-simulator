@@ -4,7 +4,7 @@ from typing import Optional, List, Tuple
 
 import src.dex.moves as moves
 import src.dex.gen1_dex as dex
-from src.state.pokestate_defs import Move, Status, Type, Category
+from src.state.pokestate_defs import Player, Move, PokemonId, Status, Type, Category
 
 @dataclass
 class MoveState:
@@ -150,6 +150,10 @@ class PokemonState:
     @property
     def fainted(self) -> bool:
         return self._status == Status.FAINTED
+    
+    @property
+    def statused(self) -> bool:
+        return self._status != Status.NONE and self._status != Status.FAINTED
 
     def valid_move(self, move_idx: int) -> bool:
         if move_idx < 0 or move_idx >= len(self.moves):
@@ -178,20 +182,7 @@ class PokemonState:
     
     @status.setter
     def status(self, value: str|Status):
-        self._status = Status[value] if isinstance(value, str) else value
-
-class Player(enum.Enum):
-    PLAYER_1 = 1
-    PLAYER_2 = 2
-
-    @staticmethod
-    def opponent(player: 'Player') -> 'Player':
-        """Get the opponent player"""
-        if player == Player.PLAYER_1:
-            return Player.PLAYER_2
-        elif player == Player.PLAYER_2:
-            return Player.PLAYER_1
-        raise ValueError("Invalid player")
+        self._status = Status(value.lower()) if isinstance(value, str) else value
 
 @dataclass
 class PlayerState:
@@ -235,6 +226,9 @@ class BattleState:
             return self.player_2
         else:
             raise ValueError("Invalid player ID")
+    
+    def get_pokemon(self, pokemon_id: PokemonId) -> PokemonState:
+        return self.get_player(pokemon_id[0]).get_active_mon(pokemon_id[1])
         
     def get_opponent(self, player_id: Player) -> PlayerState:
         opponent = Player.opponent(player_id)

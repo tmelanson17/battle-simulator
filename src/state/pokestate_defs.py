@@ -1,17 +1,33 @@
 import random
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum, Enum
 from typing import Tuple, Optional, List
 
-class Status(Enum):
-    NONE = 0
-    POISONED = 1
-    BURNED = 2
-    PARALYZED = 3
-    SLEEP = 4
-    FROZEN = 5
-    FAINTED = 6
+class Player(Enum):
+    PLAYER_1 = 1
+    PLAYER_2 = 2
+
+    @staticmethod
+    def opponent(player: 'Player') -> 'Player':
+        """Get the opponent player"""
+        if player == Player.PLAYER_1:
+            return Player.PLAYER_2
+        elif player == Player.PLAYER_2:
+            return Player.PLAYER_1
+        raise ValueError("Invalid player")
+
+PokemonId = Tuple[Player, int]  # (player, slot)
+
+class Status(StrEnum):
+    NONE = "none"
+    POISONED = "poisoned"
+    BURNED = "burned"
+    PARALYZED = "paralyzed"
+    SLEEP = "sleep"
+    FROZEN = "frozen"
+    FAINTED = "fainted"
+    TOXIC = "toxic"
 
 class Type(Enum):
     NORMAL = 0

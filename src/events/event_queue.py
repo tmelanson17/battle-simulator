@@ -25,6 +25,14 @@ class EventQueue[EventType, PriorityType]:
             if not predicate(item.event):
                 new_queue.put(item)
         self._queue = new_queue
+    
+    def reorder(self):
+        items = []
+        while not self._queue.empty():
+            items.append(self._queue.get())
+        items.sort(key=lambda item: item.priority)
+        for item in items:
+            self._queue.put(item)
 
     def get_next_event(self) -> Tuple[PriorityType, EventType]:
         item = self._queue.get()
