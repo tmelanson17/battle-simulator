@@ -104,7 +104,7 @@ class Effect:
         if isinstance(self.value, str) and self.operator != Operator.SET:
             raise ValueError("String values can only be used with SET operator")
 
-    def _operate(self, target: object, base_property: str):
+    def _operate(self, target: object):
         base_object = self.property.base_object(target)
         base_name = self.property.base_property_name()
         if self == Operator.ADD:
@@ -121,6 +121,7 @@ class Effect:
     
     def apply(self, target: object):
         if self.condition and not self.condition.check(target):
+            self._operate(target)
 
 class Move:
     """Represents a Pokemon move with all its properties"""
