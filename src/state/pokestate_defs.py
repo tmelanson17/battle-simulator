@@ -4,12 +4,13 @@ from dataclasses import dataclass, field
 from enum import StrEnum, Enum
 from typing import Tuple, Optional, List
 
+
 class Player(Enum):
     PLAYER_1 = 1
     PLAYER_2 = 2
 
     @staticmethod
-    def opponent(player: 'Player') -> 'Player':
+    def opponent(player: "Player") -> "Player":
         """Get the opponent player"""
         if player == Player.PLAYER_1:
             return Player.PLAYER_2
@@ -17,7 +18,9 @@ class Player(Enum):
             return Player.PLAYER_1
         raise ValueError("Invalid player")
 
+
 PokemonId = Tuple[Player, int]  # (player, slot)
+
 
 class Status(StrEnum):
     NONE = "none"
@@ -28,6 +31,7 @@ class Status(StrEnum):
     FROZEN = "frozen"
     FAINTED = "fainted"
     TOXIC = "toxic"
+
 
 class Type(Enum):
     NORMAL = 0
@@ -49,61 +53,139 @@ class Type(Enum):
     STEEL = 16
     FAIRY = 17
 
+
 # Type effectiveness chart
 # First axis is the attacking type
 # Seconds axis is the defender type
 # Expressed as a float multiplier
 EFFECTIVENESS = {
     Type.NORMAL: {Type.ROCK: 0.5, Type.GHOST: 0, Type.STEEL: 0.5},
-    Type.FIRE: {Type.FIRE: 0.5, Type.WATER: 0.5, Type.GRASS: 2.0, 
-                    Type.ICE: 2.0, Type.BUG: 2.0, Type.ROCK: 0.5, 
-                    Type.DRAGON: 0.5, Type.STEEL: 2.0},
-    Type.WATER: {Type.FIRE: 2.0, Type.WATER: 0.5, Type.GRASS: 0.5, 
-                    Type.GROUND: 2.0, Type.ROCK: 2.0, Type.DRAGON: 0.5},
-    Type.GRASS: {Type.FIRE: 0.5, Type.WATER: 2.0, Type.GRASS: 0.5, 
-                    Type.POISON: 0.5, Type.GROUND: 2.0, Type.FLYING: 0.5, 
-                    Type.BUG: 0.5, Type.ROCK: 2.0, Type.DRAGON: 0.5, Type.STEEL: 0.5},
-    Type.ELECTRIC: {Type.WATER: 2.0, Type.ELECTRIC: 0.5, Type.GRASS: 0.5, 
-                        Type.GROUND: 0, Type.FLYING: 2.0, Type.DRAGON: 0.5},
-    Type.ICE: {Type.FIRE: 0.5, Type.WATER: 0.5, Type.GRASS: 2.0, 
-                Type.ICE: 0.5, Type.BUG: 1.0, Type.ROCK: 1.0, 
-                Type.DRAGON: 2.0, Type.STEEL: 0.5},
-    Type.FIGHTING: {Type.NORMAL: 2.0, Type.FLYING: 0.5, Type.PSYCHIC: 0.5, 
-                    Type.ROCK: 2.0, Type.ICE: 2.0, Type.BUG: 1.0, 
-                    Type.GHOST: 0.5, Type.DARK: 1.0, Type.STEEL: 1.0},
-    Type.POISON: {Type.GRASS: 2.0, Type.POISON: 0.5, Type.GROUND: 0.5,
-                  Type.STEEL: 0.0},
-    Type.GROUND: {Type.FIRE: 2.0, Type.WATER: 1.0, Type.GRASS: 0.5,
-                  Type.ELECTRIC: 2.0, Type.FLYING: 0.0, Type.DRAGON: 1.0,
-                  Type.STEEL: 2.0},
-    Type.FLYING: {Type.FIGHTING: 2.0, Type.GRASS: 2.0,
-                  Type.ELECTRIC: 1.0, Type.ROCK: 0.5, Type.STEEL: 1.0},
-    Type.GHOST: {Type.NORMAL: 0.0, Type.GHOST: 2.0, Type.DARK: 1.0}, 
+    Type.FIRE: {
+        Type.FIRE: 0.5,
+        Type.WATER: 0.5,
+        Type.GRASS: 2.0,
+        Type.ICE: 2.0,
+        Type.BUG: 2.0,
+        Type.ROCK: 0.5,
+        Type.DRAGON: 0.5,
+        Type.STEEL: 2.0,
+    },
+    Type.WATER: {
+        Type.FIRE: 2.0,
+        Type.WATER: 0.5,
+        Type.GRASS: 0.5,
+        Type.GROUND: 2.0,
+        Type.ROCK: 2.0,
+        Type.DRAGON: 0.5,
+    },
+    Type.GRASS: {
+        Type.FIRE: 0.5,
+        Type.WATER: 2.0,
+        Type.GRASS: 0.5,
+        Type.POISON: 0.5,
+        Type.GROUND: 2.0,
+        Type.FLYING: 0.5,
+        Type.BUG: 0.5,
+        Type.ROCK: 2.0,
+        Type.DRAGON: 0.5,
+        Type.STEEL: 0.5,
+    },
+    Type.ELECTRIC: {
+        Type.WATER: 2.0,
+        Type.ELECTRIC: 0.5,
+        Type.GRASS: 0.5,
+        Type.GROUND: 0,
+        Type.FLYING: 2.0,
+        Type.DRAGON: 0.5,
+    },
+    Type.ICE: {
+        Type.FIRE: 0.5,
+        Type.WATER: 0.5,
+        Type.GRASS: 2.0,
+        Type.ICE: 0.5,
+        Type.BUG: 1.0,
+        Type.ROCK: 1.0,
+        Type.DRAGON: 2.0,
+        Type.STEEL: 0.5,
+    },
+    Type.FIGHTING: {
+        Type.NORMAL: 2.0,
+        Type.FLYING: 0.5,
+        Type.PSYCHIC: 0.5,
+        Type.ROCK: 2.0,
+        Type.ICE: 2.0,
+        Type.BUG: 1.0,
+        Type.GHOST: 0.5,
+        Type.DARK: 1.0,
+        Type.STEEL: 1.0,
+    },
+    Type.POISON: {Type.GRASS: 2.0, Type.POISON: 0.5, Type.GROUND: 0.5, Type.STEEL: 0.0},
+    Type.GROUND: {
+        Type.FIRE: 2.0,
+        Type.WATER: 1.0,
+        Type.GRASS: 0.5,
+        Type.ELECTRIC: 2.0,
+        Type.FLYING: 0.0,
+        Type.DRAGON: 1.0,
+        Type.STEEL: 2.0,
+    },
+    Type.FLYING: {
+        Type.FIGHTING: 2.0,
+        Type.GRASS: 2.0,
+        Type.ELECTRIC: 1.0,
+        Type.ROCK: 0.5,
+        Type.STEEL: 1.0,
+    },
+    Type.GHOST: {Type.NORMAL: 0.0, Type.GHOST: 2.0, Type.DARK: 1.0},
     Type.DRAGON: {Type.DRAGON: 2.0, Type.STEEL: 0.5},
     Type.DARK: {Type.NORMAL: 1.0, Type.GHOST: 2.0, Type.DARK: 0.5},
-    Type.STEEL: {Type.NORMAL: 1.0, Type.FIRE: 0.5, Type.WATER: 0.5,
-                 Type.ELECTRIC: 1.0, Type.ICE: 1.0, Type.FIGHTING: 0.5,
-                 Type.POISON: 1.0, Type.GROUND: 1.0, Type.FLYING: 1.0,
-                 Type.PSYCHIC: 1.0, Type.BUG: 1.0, Type.ROCK: 1.0,
-                 Type.GHOST: 1.0, Type.DRAGON: 1.0, Type.DARK: 1.0,
-                 Type.STEEL: 1.0},
-    Type.FAIRY: {Type.FIRE: 0.5, Type.FIGHTING: 2.0, Type.POISON: 0.5,
-                 Type.STEEL: 0.5}
+    Type.STEEL: {
+        Type.NORMAL: 1.0,
+        Type.FIRE: 0.5,
+        Type.WATER: 0.5,
+        Type.ELECTRIC: 1.0,
+        Type.ICE: 1.0,
+        Type.FIGHTING: 0.5,
+        Type.POISON: 1.0,
+        Type.GROUND: 1.0,
+        Type.FLYING: 1.0,
+        Type.PSYCHIC: 1.0,
+        Type.BUG: 1.0,
+        Type.ROCK: 1.0,
+        Type.GHOST: 1.0,
+        Type.DRAGON: 1.0,
+        Type.DARK: 1.0,
+        Type.STEEL: 1.0,
+    },
+    Type.FAIRY: {Type.FIRE: 0.5, Type.FIGHTING: 2.0, Type.POISON: 0.5, Type.STEEL: 0.5},
 }
+
 
 class Category(Enum):
     PHYSICAL = 0
     SPECIAL = 1
     STATUS = 2
 
+
+class Target(Enum):
+    SELF = 0
+    OPPONENT = 1
+    ALLY = 2
+    ALL_OPPONENTS = 3
+    ALL_ALLIES = 4
+    EVERYONE = 5
+
+
 @dataclass
 class PokemonEffect:
     property: str
     value: str
 
+
 @dataclass
 class Move:
     """Represents a Pokémon move with its properties."""
+
     name: str
     type: Type
     power: Optional[int]
@@ -112,6 +194,7 @@ class Move:
     pp: int
     description: str
     priority: int = 0
+    target: Target = Target.OPPONENT
     target_effects: List[PokemonEffect] = field(default_factory=list)
 
 
@@ -119,6 +202,19 @@ class Move:
 def get_effectiveness(attacking_type: Type, defending_type: Type) -> float:
     return EFFECTIVENESS.get(attacking_type, {}).get(defending_type, 1.0)
 
+
 # Calculate damage dealt by a move
-def calculate_damage(base_power: int, offensive_stat: int, defensive_stat: int, effective_multiplier: float, stab_multiplier: float) -> int:
-    return int(base_power * (offensive_stat / defensive_stat) * effective_multiplier * stab_multiplier * random.uniform(0.85, 1.0))
+def calculate_damage(
+    base_power: int,
+    offensive_stat: int,
+    defensive_stat: int,
+    effective_multiplier: float,
+    stab_multiplier: float,
+) -> int:
+    return int(
+        base_power
+        * (offensive_stat / defensive_stat)
+        * effective_multiplier
+        * stab_multiplier
+        * random.uniform(0.85, 1.0)
+    )

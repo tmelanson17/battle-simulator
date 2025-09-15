@@ -6,11 +6,13 @@ from src.events.event_queue import EventQueue
 from src.state.pokestate_defs import PokemonId
 
 DataType = TypeVar("DataType")
+
+
 class Listener(Generic[DataType], ABC):
     datatype: Type[DataType]
 
     @abstractmethod
-    def on_event(self, input: DataType, event_queue: EventQueue):
+    def on_event(self, input: DataType, event_queue: EventQueue) -> bool:
         pass
 
 
@@ -31,5 +33,9 @@ class ListenerManager:
                 self.ids[listener.datatype].remove(id)
 
     def listen(self, datatype: Any, event_queue: EventQueue):
+        listeners_to_remove = []
         for listener in self.listeners[type(datatype)]:
-            listener.on_event(datatype, event_queue=event_queue)
+            if not listener.on_event(datatype, event_queue=event_queue):
+                listeners_to_remove.append(listener)
+        for listener in listeners_to_remove:
+            self.listeners[type(datatype)].remove(listener)

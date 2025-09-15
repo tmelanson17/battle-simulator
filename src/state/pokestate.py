@@ -6,21 +6,22 @@ import src.dex.moves as moves
 import src.dex.gen1_dex as dex
 from src.state.pokestate_defs import Player, Move, PokemonId, Status, Type, Category
 
+
 @dataclass
 class MoveState:
-    known : bool
-    name : str
-    pp : int
-    pp_max : int
-    disabled : bool
-    move_info : Optional[Move] = field(default=None, repr=False)
+    known: bool
+    name: str
+    pp: int
+    pp_max: int
+    disabled: bool
+    move_info: Optional[Move] = field(default=None, repr=False)
 
     @property
     def available(self):
         return self.pp > 0 and not self.disabled
 
     @staticmethod
-    def from_dex(move_arg: Move|str) -> 'MoveState':
+    def from_dex(move_arg: Move | str) -> "MoveState":
         move: Optional[Move] = None
         if isinstance(move_arg, Move):
             move = move_arg
@@ -34,12 +35,14 @@ class MoveState:
             pp=move.pp,
             pp_max=move.pp,
             disabled=False,
-            move_info=move
+            move_info=move,
         )
+
 
 @dataclass
 class StatChange:
     change: int
+
 
 @dataclass
 class Stat:
@@ -52,16 +55,16 @@ class Stat:
     @property
     def current_stat(self) -> int:
         if self._boost < 0:
-            return int(self._base * (1 / (1 + self._boost*self.BOOST_UNIT)))
+            return int(self._base * (1 / (1 + abs(self._boost) * self.BOOST_UNIT)))
         else:
             return int(self._base * (1 + self._boost * self.BOOST_UNIT))
 
-    @property 
+    @property
     def base(self) -> int:
         return self._base
 
     @base.setter
-    def base(self, value: int|StatChange):
+    def base(self, value: int | StatChange):
         if isinstance(value, StatChange):
             self.boost(value.change)
         elif value < 0:
@@ -84,35 +87,50 @@ class Stat:
         stat.base = value
         return stat
 
+
 @dataclass
 class PokemonState:
-    active: bool = False # Whether the pokemon is currently active in battle
-    known: bool = False # Whether the Pokemon in this slot is known to the opponent
-    revealed: bool = False # Whether the Pokemon in this slot has been revealed to the opponent
-    in_play: bool = False # True if brought to the battle
-    level: int = 100 # Level of the Pokemon
+    active: bool = False  # Whether the pokemon is currently active in battle
+    known: bool = False  # Whether the Pokemon in this slot is known to the opponent
+    revealed: bool = (
+        False  # Whether the Pokemon in this slot has been revealed to the opponent
+    )
+    in_play: bool = False  # True if brought to the battle
+    level: int = 100  # Level of the Pokemon
 
     # TODO: Convert to % when encoding for AI
-    _hp: int = 0 # Current HP of the Pokemon 
-    hp_max: int = 0 # Max HP of the Pokemon
-    attack: Stat = field(default_factory=lambda: Stat.from_value(100)) # Attack stat of the Pokemon
-    defense: Stat = field(default_factory=lambda: Stat.from_value(100)) # Defense stat of the Pokemon
-    special_attack: Stat = field(default_factory=lambda: Stat.from_value(100)) # Special Attack stat of the Pokemon
-    special_defense: Stat = field(default_factory=lambda: Stat.from_value(100)) # Special Defense stat of the Pokemon
-    speed: Stat = field(default_factory=lambda: Stat.from_value(100)) # Speed stat of the Pokemon
+    _hp: int = 0  # Current HP of the Pokemon
+    hp_max: int = 0  # Max HP of the Pokemon
+    _attack: Stat = field(
+        default_factory=lambda: Stat.from_value(100)
+    )  # Attack stat of the Pokemon
+    _defense: Stat = field(
+        default_factory=lambda: Stat.from_value(100)
+    )  # Defense stat of the Pokemon
+    _special_attack: Stat = field(
+        default_factory=lambda: Stat.from_value(100)
+    )  # Special Attack stat of the Pokemon
+    _special_defense: Stat = field(
+        default_factory=lambda: Stat.from_value(100)
+    )  # Special Defense stat of the Pokemon
+    _speed: Stat = field(
+        default_factory=lambda: Stat.from_value(100)
+    )  # Speed stat of the Pokemon
 
-    name: Optional[str] = None # Nickname
-    species: Optional[str] = None # Species name
-    type1: Optional[Type] = None # Species type 1,2
+    name: Optional[str] = None  # Nickname
+    species: Optional[str] = None  # Species name
+    type1: Optional[Type] = None  # Species type 1,2
     type2: Optional[Type] = None
-    _status: Status = Status.NONE # Status condition of the Pokemon
-    trapped: bool = False # Volatile conditions (listed one at a time)
-    two_turn_move: bool = False # Whether the Pokemon is currently using a two-turn move
-    confused: bool = False # Whether the Pokemon is currently confused
-    sleep_turns: int = 0 # Number of turns asleep (0 if not asleep)
-    substitute : bool = False # Whether the Pokemon has a substitute active
-    reflect: bool = False # Gen 1 reflect
-    light_screen: bool = False # Gen 1 light screen
+    _status: Status = Status.NONE  # Status condition of the Pokemon
+    trapped: bool = False  # Volatile conditions (listed one at a time)
+    two_turn_move: bool = (
+        False  # Whether the Pokemon is currently using a two-turn move
+    )
+    confused: bool = False  # Whether the Pokemon is currently confused
+    sleep_turns: int = 0  # Number of turns asleep (0 if not asleep)
+    substitute: bool = False  # Whether the Pokemon has a substitute active
+    reflect: bool = False  # Gen 1 reflect
+    light_screen: bool = False  # Gen 1 light screen
     moves: List[MoveState] = field(default_factory=list)
 
     def __init__(self, name: str, level: int, moves: List[str]):
@@ -126,15 +144,17 @@ class PokemonState:
             self.type2 = pokemon.type2
             self.hp_max = pokemon.hp
             self._hp = self.hp_max
-            self.attack = Stat.from_value(pokemon.attack)
-            self.defense = Stat.from_value(pokemon.defense)
-            self.special_attack = Stat.from_value(pokemon.special_attack)
-            self.special_defense = Stat.from_value(pokemon.special_defense)
-            self.speed = Stat.from_value(pokemon.speed)
+            self._generate_stats(
+                pokemon.attack,
+                pokemon.defense,
+                pokemon.special_attack,
+                pokemon.special_defense,
+                pokemon.speed,
+            )
 
     @property
     def hp(self) -> int:
-        return self._hp 
+        return self._hp
 
     def hp_percent(self) -> float:
         return self._hp / self.hp_max * 100 if self.hp_max > 0 else 0.0
@@ -150,10 +170,47 @@ class PokemonState:
     @property
     def fainted(self) -> bool:
         return self._status == Status.FAINTED
-    
+
     @property
     def statused(self) -> bool:
         return self._status != Status.NONE and self._status != Status.FAINTED
+
+    def _generate_stats(self, atk: int, defn: int, sp_atk: int, sp_def: int, spd: int):
+        def create_stat_property(stat_name: str):
+            def getter(self):
+                return getattr(self, f"_{stat_name}").current_stat
+
+            def setter(self, value: str):
+                if value.startswith(("+", "-")):
+                    change = int(value)
+                    if value.startswith("-"):
+                        change = -abs(change)
+                    if change == 0:
+                        return
+                    success = getattr(self, f"_{stat_name}").boost(change)
+                    if not success:
+                        print(
+                            f"{self.name}'s {stat_name} won't go {'higher' if change > 0 else 'lower'}!"
+                        )
+                else:
+                    # Reset stats
+                    getattr(self, f"_{stat_name}")._boost = 0
+
+            return property(getter, setter)
+
+        self._attack = Stat.from_value(atk)
+        self._defense = Stat.from_value(defn)
+        self._special_attack = Stat.from_value(sp_atk)
+        self._special_defense = Stat.from_value(sp_def)
+        self._speed = Stat.from_value(spd)
+        for stat_name in [
+            "attack",
+            "defense",
+            "special_attack",
+            "special_defense",
+            "speed",
+        ]:
+            setattr(PokemonState, stat_name, create_stat_property(stat_name))
 
     def valid_move(self, move_idx: int) -> bool:
         if move_idx < 0 or move_idx >= len(self.moves):
@@ -162,27 +219,28 @@ class PokemonState:
 
     def get_offensive_stat(self, category: Category) -> int:
         if category == Category.PHYSICAL:
-            return self.attack.current_stat
+            return self.attack
         elif category == Category.SPECIAL:
-            return self.special_attack.current_stat
+            return self.special_attack
         else:
             raise ValueError(f"Unknown move category: {category}")
-    
+
     def get_defensive_stat(self, category: Category) -> int:
         if category == Category.PHYSICAL:
-            return self.defense.current_stat
+            return self.defense
         elif category == Category.SPECIAL:
-            return self.special_defense.current_stat
+            return self.special_defense
         else:
             raise ValueError(f"Unknown move category: {category}")
 
     @property
     def status(self) -> Status:
         return self._status
-    
+
     @status.setter
-    def status(self, value: str|Status):
+    def status(self, value: str | Status):
         self._status = Status(value.lower()) if isinstance(value, str) else value
+
 
 @dataclass
 class PlayerState:
@@ -190,19 +248,26 @@ class PlayerState:
     pk_list: List[PokemonState]
 
     # List of indices of Pokemon chosen in team preview, in the order they were selected
-    in_play: List[int] 
+    in_play: List[int]
 
     # Current active Pokemon
     active_mons: List[int]
 
     def get_available_pokemon(self) -> List[int]:
-        return [i for i in self.in_play if not self.pk_list[i].status == Status.FAINTED and i not in self.active_mons]
+        return [
+            i
+            for i in self.in_play
+            if not self.pk_list[i].status == Status.FAINTED
+            and i not in self.active_mons
+        ]
 
     def get_active_mon(self, slot: int = 0) -> PokemonState:
         if slot < 0 or slot >= len(self.active_mons):
-            raise IndexError(f"Active slot {slot} out of range for active mons {self.active_mons}")
+            raise IndexError(
+                f"Active slot {slot} out of range for active mons {self.active_mons}"
+            )
         return self.pk_list[self.active_mons[slot]]
-    
+
     def is_finished(self) -> bool:
         return all(self.pk_list[i].fainted for i in self.in_play)
 
@@ -210,8 +275,11 @@ class PlayerState:
         if new_idx < 0 or new_idx >= len(self.pk_list):
             raise IndexError(f"New index {new_idx} out of range for Pokemon list")
         if slot_idx < 0 or slot_idx >= len(self.active_mons):
-            raise IndexError(f"Slot index {slot_idx} out of range for active mons {self.active_mons}")
+            raise IndexError(
+                f"Slot index {slot_idx} out of range for active mons {self.active_mons}"
+            )
         self.active_mons[slot_idx] = new_idx
+
 
 @dataclass
 class BattleState:
@@ -226,14 +294,14 @@ class BattleState:
             return self.player_2
         else:
             raise ValueError("Invalid player ID")
-    
+
     def get_pokemon(self, pokemon_id: PokemonId) -> PokemonState:
         return self.get_player(pokemon_id[0]).get_active_mon(pokemon_id[1])
-        
+
     def get_opponent(self, player_id: Player) -> PlayerState:
         opponent = Player.opponent(player_id)
         return self.get_player(opponent)
-    
+
     def is_finished(self) -> bool:
         return self.player_1.is_finished() or self.player_2.is_finished()
 
@@ -241,7 +309,7 @@ class BattleState:
 def print_battle_state(battle_state: BattleState, title: str = "Battle State") -> None:
     """
     Print the BattleState in a clear, formatted way for debugging and visualization.
-    
+
     Args:
         battle_state: The BattleState to print
         title: Optional title for the printout
@@ -249,28 +317,36 @@ def print_battle_state(battle_state: BattleState, title: str = "Battle State") -
     print("=" * 80)
     print(f"{title:^80}")
     print("=" * 80)
-    
-    def print_pokemon(pokemon: PokemonState, slot: int, is_active: bool = False) -> None:
+
+    def print_pokemon(
+        pokemon: PokemonState, slot: int, is_active: bool = False
+    ) -> None:
         """Helper function to print a single Pokemon's state"""
         status_indicator = "🔴" if is_active else "⚪"
         species_name = pokemon.species or "Unknown"
         level_str = f"Lv.{pokemon.level}" if pokemon.level > 0 else "Lv.?"
 
         # Format HP with one decimal place, ensuring one digit before the decimal
-        hp_str = f"{pokemon.hp:d}/{pokemon.hp_max:d} ({pokemon.hp / pokemon.hp_max * 100:.1f}%)" if pokemon.hp > 0 else "0.0%"
-        
+        hp_str = (
+            f"{pokemon.hp:d}/{pokemon.hp_max:d} ({pokemon.hp / pokemon.hp_max * 100:.1f}%)"
+            if pokemon.hp > 0
+            else "0.0%"
+        )
+
         # Status condition emoji
         status_emoji = {
             Status.NONE: "",
             Status.BURNED: "🔥",
-            Status.FROZEN: "🧊", 
+            Status.FROZEN: "🧊",
             Status.PARALYZED: "⚡",
             Status.POISONED: "☠️",
             Status.SLEEP: "💤",
-            Status.FAINTED: "💀"
+            Status.FAINTED: "💀",
         }.get(pokemon.status, "")
-        
-        print(f"  {status_indicator} Slot {slot+1}: {species_name} {level_str} - HP: {hp_str} {status_emoji}")
+
+        print(
+            f"  {status_indicator} Slot {slot + 1}: {species_name} {level_str} - HP: {hp_str} {status_emoji}"
+        )
 
         if pokemon.known and pokemon.moves:
             moves = []
@@ -281,17 +357,17 @@ def print_battle_state(battle_state: BattleState, title: str = "Battle State") -
                     moves.append(f"{move.name} {pp_str}{disabled_str}")
             if moves:
                 print(f"    Moves: {' | '.join(moves)}")
-        
+
         # Show stats
         stats = []
-        stats.append(f"Atk: {pokemon.attack.current_stat:d}")
-        stats.append(f"Def: {pokemon.defense.current_stat:d}")
-        stats.append(f"SpcA: {pokemon.special_attack.current_stat:d}")
-        stats.append(f"SpcD: {pokemon.special_defense.current_stat:d}")
-        stats.append(f"Spd: {pokemon.speed.current_stat:d}")
+        stats.append(f"Atk: {pokemon.attack:d}")
+        stats.append(f"Def: {pokemon.defense:d}")
+        stats.append(f"SpcA: {pokemon.special_attack:d}")
+        stats.append(f"SpcD: {pokemon.special_defense:d}")
+        stats.append(f"Spd: {pokemon.speed:d}")
         if stats:
             print(f"    Current Stats: {' | '.join(stats)}")
-            
+
         # Show conditions
         conditions = []
         if pokemon.trapped:
@@ -310,35 +386,54 @@ def print_battle_state(battle_state: BattleState, title: str = "Battle State") -
             conditions.append(f"Sleep ({pokemon.sleep_turns} turns)")
         if conditions:
             print(f"    Conditions: {' | '.join(conditions)}")
-    
+
     # Player team
     print("\n🔵 PLAYER TEAM:")
     print("-" * 40)
     for i, pokemon in enumerate(battle_state.player_1.pk_list):
-        is_active = (i == battle_state.player_1.active_mons[0])
+        is_active = i == battle_state.player_1.active_mons[0]
         print_pokemon(pokemon, i, is_active)
-    
-    # Opponent team  
+
+    # Opponent team
     print("\n🔴 OPPONENT TEAM:")
     print("-" * 40)
     for i, pokemon in enumerate(battle_state.player_2.pk_list):
-        is_active = (i == battle_state.player_2.active_mons[0])
+        is_active = i == battle_state.player_2.active_mons[0]
         print_pokemon(pokemon, i, is_active)
-    
+
     print("\n" + "=" * 80)
 
+
 # Creates a default battle state with empty teams and active Pokemon in the first slot.
-def create_default_battle_state(team_1: List[str], team_2: List[str], moves_1: List[List[str]], moves_2: List[List[str]]) -> BattleState:
+def create_default_battle_state(
+    team_1: List[str],
+    team_2: List[str],
+    moves_1: List[List[str]],
+    moves_2: List[List[str]],
+) -> BattleState:
     return BattleState(
-        player_1=PlayerState(in_play=[i for i in range(len(team_1))], 
-                             pk_list=[PokemonState(name=name, level=100, moves=moves) for moves, name in zip(moves_1,team_1)], active_mons=[0]),
-        player_2=PlayerState(in_play=[i for i in range(len(team_2))], 
-                             pk_list=[PokemonState(name=name, level=100, moves=moves) for moves, name in zip(moves_2, team_2)], active_mons=[0])
+        player_1=PlayerState(
+            in_play=[i for i in range(len(team_1))],
+            pk_list=[
+                PokemonState(name=name, level=100, moves=moves)
+                for moves, name in zip(moves_1, team_1)
+            ],
+            active_mons=[0],
+        ),
+        player_2=PlayerState(
+            in_play=[i for i in range(len(team_2))],
+            pk_list=[
+                PokemonState(name=name, level=100, moves=moves)
+                for moves, name in zip(moves_2, team_2)
+            ],
+            active_mons=[0],
+        ),
     )
+
 
 if __name__ == "__main__":
     state = create_default_battle_state(
-        ["Pikachu", "Bulbasaur", "Charmander"], 
+        ["Pikachu", "Bulbasaur", "Charmander"],
         ["Squirtle", "Pidgey", "Rattata"],
         [
             ["Thunderbolt", "Quick Attack", "Seismic Toss"],
@@ -348,8 +443,8 @@ if __name__ == "__main__":
         [
             ["Water Gun", "Tackle", "Bubble"],
             ["Quick Attack", "Gust", "Sand Attack"],
-            ["Quick Attack", "Tackle", "Tail Whip"]
-        ]
+            ["Quick Attack", "Tackle", "Tail Whip"],
+        ],
     )
     print_battle_state(state, "Default Battle State")
 
