@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 import enum
 from typing import Optional, List, Tuple
 
+from src.dex.stat_calculator import calculate_hp, calculate_other_stat
 import src.dex.moves as moves
 import src.dex.gen1_dex as dex
 from src.state.pokestate_defs import Player, Move, PokemonId, Status, Type, Category
@@ -142,14 +143,14 @@ class PokemonState:
             self.species = pokemon.species
             self.type1 = pokemon.type1
             self.type2 = pokemon.type2
-            self.hp_max = pokemon.hp
+            self.hp_max = calculate_hp(pokemon.hp, self.level)
             self._hp = self.hp_max
             self._generate_stats(
-                pokemon.attack,
-                pokemon.defense,
-                pokemon.special_attack,
-                pokemon.special_defense,
-                pokemon.speed,
+                calculate_other_stat(pokemon.attack, self.level),
+                calculate_other_stat(pokemon.defense, self.level),
+                calculate_other_stat(pokemon.special_attack, self.level),
+                calculate_other_stat(pokemon.special_defense, self.level),
+                calculate_other_stat(pokemon.speed, self.level),
             )
 
     @property

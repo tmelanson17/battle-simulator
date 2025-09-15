@@ -615,6 +615,7 @@ GEN1_MOVES = [
         100,
         64,
         "Raises Attack and Special Attack.",
+        target=Target.SELF,
         target_effects=[PokemonEffect("special_attack", "+1")],
     ),
     Move(
