@@ -61,8 +61,8 @@ class BattleManager:
     def _add_death_listeners(self):
         for player in [Player.PLAYER_1, Player.PLAYER_2]:
             # Register death listeners for each player's Pokemon
-            for slot in range(len(battle_state.get_player(player).active_mons)):
-                pokemon_id = (player, battle_state.get_player(player).active_mons[slot])
+            for slot in range(len(self._game_state.battle_state.get_player(player).active_mons)):
+                pokemon_id = (player, self._game_state.battle_state.get_player(player).active_mons[slot])
                 self._game_state.listener_manager.add_listener(
                     pokemon_id, DeathListener(player, slot)
                 )
@@ -88,7 +88,8 @@ class BattleManager:
                 )
                 print(f"Turn {self._turn_counter} starts!")
                 print_battle_state(
-                    self._game_state.battle_state, f"Turn {self._turn_counter}"
+                    self._game_state.battle_state, f"Turn {self._turn_counter}",
+                    self._game_state.field_state,
                 )
                 print("=========")
             priority, next_action = self._game_state.event_queue.get_next_event()

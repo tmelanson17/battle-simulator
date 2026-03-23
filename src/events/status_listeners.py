@@ -38,7 +38,7 @@ class ParalysisListener(Listener[BattleState]):
     """Comprehensive listener that handles all paralysis effects"""
 
     datatype = BattleState
-    PARALYZE_CHANCE: float = 0.6  # 30% chance to be unable to move
+    PARALYZE_CHANCE: float = 0.3  # 30% chance to be unable to move
     SPEED_REDUCTION: float = 0.25
 
     def __init__(self, player: Player, pokemon_idx: int):
@@ -65,18 +65,17 @@ class ParalysisListener(Listener[BattleState]):
     def _handle_speed_reduction(self, pokemon: PokemonState):
         """Apply speed reduction when paralyzed"""
         if not self.speed_reduced:
-            self.original_base_speed = pokemon.speed.base
-            new_base_speed = int(self.original_base_speed * self.SPEED_REDUCTION)
-            pokemon.speed.base = new_base_speed
+            original_speed = pokemon.speed
+            pokemon._speed.modifier = self.SPEED_REDUCTION
             self.speed_reduced = True
             print(
-                f"{pokemon.name}'s speed was reduced due to paralysis! ({self.original_base_speed} -> {new_base_speed})"
+                f"{pokemon.name}'s speed was reduced due to paralysis! ({original_speed} -> {pokemon.speed})"
             )
 
     def _restore_speed(self, pokemon: PokemonState):
         """Restore original speed when paralysis is cured"""
-        if self.original_base_speed is not None:
-            pokemon.speed.base = self.original_base_speed
+        if self.speed_reduced:
+            pokemon._speed.modifier = 1.0
             self.speed_reduced = False
             print(f"{pokemon.name}'s speed was restored!")
 
@@ -181,18 +180,17 @@ class BurnListener(Listener[BattleState]):
     def _handle_attack_reduction(self, pokemon: PokemonState):
         """Apply attack reduction when burned"""
         if not self.attack_reduced:
-            self.original_base_attack = pokemon.attack.base
-            new_base_attack = int(self.original_base_attack * 0.5)
-            pokemon.attack.base = new_base_attack
+            original_attack = pokemon.attack
+            pokemon._attack.modifier = 0.5
             self.attack_reduced = True
             print(
-                f"{pokemon.name}'s attack was reduced due to burn! ({self.original_base_attack} -> {new_base_attack})"
+                f"{pokemon.name}'s attack was reduced due to burn! ({original_attack} -> {pokemon.attack})"
             )
 
     def _restore_attack(self, pokemon: PokemonState):
         """Restore original attack when burn is cured"""
-        if self.original_base_attack is not None:
-            pokemon.attack.base = self.original_base_attack
+        if self.attack_reduced:
+            pokemon._attack.modifier = 1.0
             self.attack_reduced = False
             print(f"{pokemon.name}'s attack was restored!")
 

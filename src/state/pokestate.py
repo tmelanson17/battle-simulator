@@ -49,6 +49,7 @@ class StatChange:
 class Stat:
     _base: int = 0
     _boost: int = 0
+    modifier: float = 1.0  # multiplicative modifier applied after boost (e.g. 0.25 for paralysis, 0.5 for burn)
 
     BOOST_UNIT = 0.5
     MAX_BOOSTS = 6
@@ -56,9 +57,9 @@ class Stat:
     @property
     def current_stat(self) -> int:
         if self._boost < 0:
-            return int(self._base * (1 / (1 + abs(self._boost) * self.BOOST_UNIT)))
+            return int(self._base * (1 / (1 + abs(self._boost) * self.BOOST_UNIT)) * self.modifier)
         else:
-            return int(self._base * (1 + self._boost * self.BOOST_UNIT))
+            return int(self._base * (1 + self._boost * self.BOOST_UNIT) * self.modifier)
 
     @property
     def base(self) -> int:
@@ -307,13 +308,14 @@ class BattleState:
         return self.player_1.is_finished() or self.player_2.is_finished()
 
 
-def print_battle_state(battle_state: BattleState, title: str = "Battle State") -> None:
+def print_battle_state(battle_state: BattleState, title: str = "Battle State", field_state=None) -> None:
     """
     Print the BattleState in a clear, formatted way for debugging and visualization.
 
     Args:
         battle_state: The BattleState to print
         title: Optional title for the printout
+        field_state: Optional FieldState to include hazard information
     """
     print("=" * 80)
     print(f"{title:^80}")
@@ -402,10 +404,61 @@ def print_battle_state(battle_state: BattleState, title: str = "Battle State") -
         is_active = i == battle_state.player_2.active_mons[0]
         print_pokemon(pokemon, i, is_active)
 
+    # Field state
+    if field_state is not None:
+        print("\n🌍 FIELD:")
+        print("-" * 40)
+        for player, label in ((Player.PLAYER_1, "Player"), (Player.PLAYER_2, "Opponent")):
+            side = field_state.get_side(player)
+            if side.hazards:
+                hazard_str = "  ".join(
+                    f"{name} x{layers}" if layers > 1 else name
+                    for name, layers in side.hazards.items()
+                )
+                print(f"  {label}: {hazard_str}")
+            else:
+                print(f"  {label}: (none)")
+
     print("\n" + "=" * 80)
 
 
 # Creates a default battle state with empty teams and active Pokemon in the first slot.
+def parse_team_file(path: str) -> tuple:
+    """
+    Parse a Showdown-style team file and return (names, moves_per_pokemon).
+
+    Each Pokemon entry is separated by a blank line. The first line of each
+    entry is the Pokemon name. Lines starting with '- ' are moves. All other
+    lines (Ability, EVs, Nature, etc.) are ignored.
+
+    Returns:
+        (List[str], List[List[str]]) — parallel lists of names and move lists.
+    """
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    names: List[str] = []
+    moves_list: List[List[str]] = []
+
+    for block in content.strip().split("\n\n"):
+        lines = [line.strip() for line in block.strip().splitlines() if line.strip()]
+        if not lines:
+            continue
+        name = lines[0]
+        moves = [line[2:].strip() for line in lines[1:] if line.startswith("- ")]
+        names.append(name)
+        moves_list.append(moves)
+
+    return names, moves_list
+
+
+def create_battle_state_from_team_files(path_1: str, path_2: str) -> "BattleState":
+    """Create a BattleState by reading two Showdown-style team files."""
+    team_1, moves_1 = parse_team_file(path_1)
+    team_2, moves_2 = parse_team_file(path_2)
+    return create_default_battle_state(team_1, team_2, moves_1, moves_2)
+
+
 def create_default_battle_state(
     team_1: List[str],
     team_2: List[str],
