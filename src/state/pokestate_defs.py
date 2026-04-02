@@ -2,7 +2,7 @@ import random
 
 from dataclasses import dataclass, field
 from enum import StrEnum, Enum
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Any
 
 
 class Player(Enum):
@@ -234,6 +234,13 @@ def get_effectiveness(attacking_type: Type, defending_type: Type) -> float:
 
 
 @dataclass
+class Ability:
+    """Represents a Pokemon ability."""
+    name: str
+    description: str
+
+
+@dataclass
 class SwitchInEvent:
     """
     Emitted by SwitchIn.execute() *before* switch_pokemon() is called.
@@ -242,6 +249,22 @@ class SwitchInEvent:
     """
     player: "Player"  # the player whose Pokemon is switching OUT
     slot: int         # the active slot index being vacated
+
+
+@dataclass
+class MoveHitEvent:
+    """
+    Emitted by MoveAction.execute() after damage is calculated but before
+    DamageAction is queued. Ability listeners can set absorbed=True to suppress
+    the damage, or modify damage_multiplier to scale it (e.g. Flash Fire boost).
+    """
+    attacker: "Player"       # the player whose Pokemon used the move
+    move: "Move"
+    src_mon: Any             # PokemonState of the attacker (Any avoids circular import)
+    target_mon: Any          # PokemonState of the target
+    damage: int
+    absorbed: bool = False
+    damage_multiplier: float = 1.0
 
 
 # Calculate damage dealt by a move

@@ -32,6 +32,16 @@ class ListenerManager:
                 self.listeners[listener.datatype].remove(listener)
                 self.ids[listener.datatype].remove(id)
 
+    def remove_listener_if(self, datatype: type, pred: Callable[[Listener], bool]):
+        """Remove all listeners of the given datatype that match pred."""
+        keep = [
+            (listener, pid)
+            for listener, pid in zip(self.listeners[datatype], self.ids[datatype])
+            if not pred(listener)
+        ]
+        self.listeners[datatype] = [listener for listener, _ in keep]
+        self.ids[datatype] = [pid for _, pid in keep]
+
     def listen(self, datatype: Any, event_queue: EventQueue):
         listeners_to_remove = []
         for listener in self.listeners[type(datatype)]:

@@ -34,13 +34,14 @@ class ChooseAction(Action):
                 disabled = " (DISABLED)" if move.disabled else ""
                 print(f"  {i + 1}. {move.name} (PP: {move.pp}/{move.pp_max}){disabled}")
         print()
-        self.choose_move(player_state, game_state.event_queue, turn_count)
+        self.choose_move(player_state, game_state.event_queue, turn_count, game_state)
 
     def choose_move(
         self,
         player_state: PlayerState,
         event_loop: EventQueue["Action", "Priority"],
         turn_count: int,
+        game_state: GameState = None,
     ):
         print(f"Choose one of the above moves (either move <x> or switch <x>)")
         move_success = False
@@ -66,6 +67,16 @@ class ChooseAction(Action):
                                     active_mon.speed,
                                 ),
                             )
+                            # Register PursuitListener immediately so it is in place
+                            # before SwitchIn (priority 6) can fire this same turn.
+                            if move.name == "Pursuit" and game_state is not None:
+                                from src.events.pursuit_listener import PursuitListener
+                                game_state.listener_manager.add_listener(
+                                    (self.player, i),
+                                    PursuitListener(
+                                        self.player, game_state, move_idx, i, i
+                                    ),
+                                )
                         else:
                             raise ValueError(
                                 f"Cannot use move {move_idx + 1} on {active_mon.name}."

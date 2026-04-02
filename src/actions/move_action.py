@@ -89,10 +89,21 @@ class MoveAction(Action):
                 )
             damage = self.calculate_move_damage(dex_entry, src_mon, target)
             if damage > 0:
-                game_state.event_queue.add_event(
-                    DamageAction(self.player, damage, self.src_idx, self.target_idx),
-                    Priority(dex_entry.priority, src_mon.speed),
+                from src.state.pokestate_defs import MoveHitEvent
+                hit_event = MoveHitEvent(
+                    attacker=self.player,
+                    move=dex_entry,
+                    src_mon=src_mon,
+                    target_mon=target,
+                    damage=damage,
                 )
+                game_state.listener_manager.listen(hit_event, game_state.event_queue)
+                if not hit_event.absorbed:
+                    actual_damage = int(damage * hit_event.damage_multiplier)
+                    game_state.event_queue.add_event(
+                        DamageAction(self.player, actual_damage, self.src_idx, self.target_idx),
+                        Priority(dex_entry.priority, src_mon.speed),
+                    )
                 if dex_entry.name == "Pursuit":
                     # Pursuit fired normally (opponent didn't switch) — clean up the
                     # PursuitListener so it doesn't fire on a future opponent switch.

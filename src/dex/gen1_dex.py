@@ -13,12 +13,13 @@ class PokemonInfo:
     species: str
     type1: Type
     type2: Optional[Type]
-    hp: int 
+    hp: int
     attack: int
     defense: int
     special_attack: int
     special_defense: int
     speed: int
+    ability: Optional[str] = None
 
 # Complete Generation 1 Pokédex
 # Format: (name, type1, type2 or None, base_stats: [HP, Attack, Defense, Special, Speed])
@@ -41,13 +42,13 @@ GEN1_POKEMON = {
     16: PokemonInfo("Pidgey", Type.NORMAL, Type.FLYING, 40, 45, 40, 35, 56, 55),
     17: PokemonInfo("Pidgeotto", Type.NORMAL, Type.FLYING, 63, 60, 55, 50, 71, 71),
     18: PokemonInfo("Pidgeot", Type.NORMAL, Type.FLYING, 83, 80, 75, 70, 101, 101),
-    19: PokemonInfo("Rattata", Type.NORMAL, None, 30, 56, 35, 25, 72, 72),
+    19: PokemonInfo("Rattata", Type.NORMAL, None, 30, 56, 35, 25, 72, 72, ability="Intimidate"),
     20: PokemonInfo("Raticate", Type.NORMAL, None, 55, 81, 60, 50, 97, 97),
     21: PokemonInfo("Spearow", Type.NORMAL, Type.FLYING, 40, 60, 30, 31, 70, 70),
     22: PokemonInfo("Fearow", Type.NORMAL, Type.FLYING, 65, 90, 65, 61, 100, 100),
     23: PokemonInfo("Ekans", Type.POISON, None, 35, 60, 44, 40, 55, 55),
     24: PokemonInfo("Arbok", Type.POISON, None, 60, 85, 69, 65, 80, 80),
-    25: PokemonInfo("Pikachu", Type.ELECTRIC, None, 35, 55, 30, 50, 90, 90),
+    25: PokemonInfo("Pikachu", Type.ELECTRIC, None, 35, 55, 30, 50, 90, 90, ability="Volt Absorb"),
     26: PokemonInfo("Raichu", Type.ELECTRIC, None, 60, 90, 55, 90, 110, 110),
     27: PokemonInfo("Sandshrew", Type.GROUND, None, 50, 75, 85, 30, 40, 40),
     28: PokemonInfo("Sandslash", Type.GROUND, None, 75, 100, 110, 45, 65, 65),

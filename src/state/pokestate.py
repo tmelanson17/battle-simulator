@@ -134,8 +134,9 @@ class PokemonState:
     reflect: bool = False  # Gen 1 reflect
     light_screen: bool = False  # Gen 1 light screen
     moves: List[MoveState] = field(default_factory=list)
+    ability: Optional[str] = None
 
-    def __init__(self, name: str, level: int, moves: List[str]):
+    def __init__(self, name: str, level: int, moves: List[str], ability: Optional[str] = None):
         pokemon = dex.get_pokemon_by_name(name)
         self.name = name
         self.level = level
@@ -144,6 +145,7 @@ class PokemonState:
             self.species = pokemon.species
             self.type1 = pokemon.type1
             self.type2 = pokemon.type2
+            self.ability = ability if ability is not None else pokemon.ability
             self.hp_max = calculate_hp(pokemon.hp, self.level)
             self._hp = self.hp_max
             self._generate_stats(
@@ -166,6 +168,7 @@ class PokemonState:
         self._hp = max(0, min(value, self.hp_max))
         if self._hp == 0:
             self._status = Status.FAINTED
+            self.reset_boosts()
         elif self._status == Status.FAINTED:
             self._status = Status.NONE
 
@@ -213,6 +216,10 @@ class PokemonState:
             "speed",
         ]:
             setattr(PokemonState, stat_name, create_stat_property(stat_name))
+
+    def reset_boosts(self):
+        for stat_name in ["_attack", "_defense", "_special_attack", "_special_defense", "_speed"]:
+            getattr(self, stat_name)._boost = 0
 
     def valid_move(self, move_idx: int) -> bool:
         if move_idx < 0 or move_idx >= len(self.moves):
@@ -439,6 +446,7 @@ def parse_team_file(path: str) -> tuple:
 
     names: List[str] = []
     moves_list: List[List[str]] = []
+    abilities: List[Optional[str]] = []
 
     for block in content.strip().split("\n\n"):
         lines = [line.strip() for line in block.strip().splitlines() if line.strip()]
@@ -446,17 +454,20 @@ def parse_team_file(path: str) -> tuple:
             continue
         name = lines[0]
         moves = [line[2:].strip() for line in lines[1:] if line.startswith("- ")]
+        ability_line = next((ln for ln in lines[1:] if ln.startswith("Ability:")), None)
+        ability = ability_line.split(":", 1)[1].strip() if ability_line else None
         names.append(name)
         moves_list.append(moves)
+        abilities.append(ability)
 
-    return names, moves_list
+    return names, moves_list, abilities
 
 
 def create_battle_state_from_team_files(path_1: str, path_2: str) -> "BattleState":
     """Create a BattleState by reading two Showdown-style team files."""
-    team_1, moves_1 = parse_team_file(path_1)
-    team_2, moves_2 = parse_team_file(path_2)
-    return create_default_battle_state(team_1, team_2, moves_1, moves_2)
+    team_1, moves_1, abilities_1 = parse_team_file(path_1)
+    team_2, moves_2, abilities_2 = parse_team_file(path_2)
+    return create_default_battle_state(team_1, team_2, moves_1, moves_2, abilities_1, abilities_2)
 
 
 def create_default_battle_state(
@@ -464,21 +475,25 @@ def create_default_battle_state(
     team_2: List[str],
     moves_1: List[List[str]],
     moves_2: List[List[str]],
+    abilities_1: Optional[List[Optional[str]]] = None,
+    abilities_2: Optional[List[Optional[str]]] = None,
 ) -> BattleState:
+    _abilities_1 = abilities_1 or [None] * len(team_1)
+    _abilities_2 = abilities_2 or [None] * len(team_2)
     return BattleState(
         player_1=PlayerState(
             in_play=[i for i in range(len(team_1))],
             pk_list=[
-                PokemonState(name=name, level=100, moves=moves)
-                for moves, name in zip(moves_1, team_1)
+                PokemonState(name=name, level=100, moves=moves, ability=ability)
+                for moves, name, ability in zip(moves_1, team_1, _abilities_1)
             ],
             active_mons=[0],
         ),
         player_2=PlayerState(
             in_play=[i for i in range(len(team_2))],
             pk_list=[
-                PokemonState(name=name, level=100, moves=moves)
-                for moves, name in zip(moves_2, team_2)
+                PokemonState(name=name, level=100, moves=moves, ability=ability)
+                for moves, name, ability in zip(moves_2, team_2, _abilities_2)
             ],
             active_mons=[0],
         ),

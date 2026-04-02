@@ -44,22 +44,40 @@ battle-simulator/
 └── README.md           # This file
 ```
 
-## Installation
+## Getting Started
 
-1. Make sure you have Python 3.7+ installed
-2. Clone or download this repository
-3. Navigate to the project directory
-4. Install dependencies (if any):
+### Prerequisites
+
+- Python 3.7+
+
+### Installation
+
+1. Clone or download this repository
+2. Navigate to the project directory:
+   ```bash
+   cd battle-simulator
+   ```
+3. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-## Usage
-
-Run the main application:
+### Running the Simulator
 
 ```bash
 python main.py
+```
+
+### Running Tests
+
+```bash
+# Run all status effect tests
+python test_all_status_effects.py
+
+# Run individual test files
+python test_paralysis.py
+python test_paralysis_listeners.py
+python test_merged_listeners.py
 ```
 
 ### How to Play
