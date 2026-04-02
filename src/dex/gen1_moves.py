@@ -570,6 +570,7 @@ GEN1_MOVES = [
         100,
         32,
         "Inflicts damage equal to the user's level.",
+        fixed_damage="level",
     ),
     Move(
         "Strength",
@@ -840,6 +841,7 @@ GEN1_MOVES = [
         100,
         24,
         "Inflicts damage equal to the user's level.",
+        fixed_damage="level",
     ),
     Move(
         "Mimic",

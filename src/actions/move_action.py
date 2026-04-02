@@ -10,6 +10,7 @@ from src.state.pokestate_defs import (
     get_effectiveness,
     calculate_damage,
 )
+from src.state.field import HAZARD_DEFS
 from src.events.game_state import GameState
 from src.dex.moves import get_move_by_name
 from src.actions.effects import from_move
@@ -27,6 +28,18 @@ class MoveAction(Action):
     def calculate_move_damage(
         self, move: Move, src_mon: PokemonState, target_mon: PokemonState
     ) -> int:
+        if move.fixed_damage is not None:
+            effectiveness = 1.0
+            if target_mon.type1:
+                effectiveness *= get_effectiveness(move.type, target_mon.type1)
+            if target_mon.type2:
+                effectiveness *= get_effectiveness(move.type, target_mon.type2)
+            if effectiveness == 0:
+                return 0
+            if move.fixed_damage == "level":
+                return src_mon.level
+            return 0
+
         base_power = move.power
         if base_power is None:
             return 0
@@ -52,22 +65,21 @@ class MoveAction(Action):
 
     def execute(self, game_state: GameState):
         player = game_state.battle_state.get_player(self.player)
-        move = player.get_active_mon(self.src_idx).moves[self.move_idx]
+        src_mon = player.get_active_mon(self.src_idx)
+        move = src_mon.moves[self.move_idx]
         dex_entry = get_move_by_name(move.name)
         if move.disabled:
             return
+        if not dex_entry:
+            raise ValueError(f"Move {move.name} not found in dex....")
         if dex_entry.target == Target.SELF:
-            target = player.get_active_mon(self.src_idx)
+            target = src_mon
         else:
             target = game_state.battle_state.get_opponent(self.player).get_active_mon(
                 self.target_idx
             )
         target_str = "" if dex_entry.target == Target.SELF else f" on {target.name}"
-        print(
-            f"{player.get_active_mon(self.src_idx).name} used {dex_entry.name}{target_str}!"
-        )
-        if not dex_entry:
-            raise ValueError(f"Move {move.name} not found in dex....")
+        print(f"{src_mon.name} used {dex_entry.name}{target_str}!")
 
         if dex_entry.category != Category.STATUS:
             # TODO: Handle damage / healing to self target moves
@@ -75,16 +87,25 @@ class MoveAction(Action):
                 raise NotImplementedError(
                     "Currently only opponent targeting moves are implemented."
                 )
-            damage = self.calculate_move_damage(
-                dex_entry, player.get_active_mon(self.src_idx), target
-            )
+            damage = self.calculate_move_damage(dex_entry, src_mon, target)
             if damage > 0:
                 game_state.event_queue.add_event(
                     DamageAction(self.player, damage, self.src_idx, self.target_idx),
-                    Priority(
-                        dex_entry.priority, player.get_active_mon(self.src_idx).speed
-                    ),
+                    Priority(dex_entry.priority, src_mon.speed),
                 )
+                if dex_entry.name == "Pursuit":
+                    # Pursuit fired normally (opponent didn't switch) — clean up the
+                    # PursuitListener so it doesn't fire on a future opponent switch.
+                    from src.state.pokestate_defs import SwitchInEvent
+                    from src.events.pursuit_listener import PursuitListener
+                    game_state.listener_manager.remove_listener_if(
+                        SwitchInEvent,
+                        lambda lst: (
+                            isinstance(lst, PursuitListener)
+                            and lst.pursuing_player == self.player
+                            and lst.src_idx == self.src_idx
+                        ),
+                    )
             else:
                 print(f"It had no effect on {target.name}.")
         else:
@@ -98,10 +119,7 @@ class MoveAction(Action):
                             self.target_idx,
                             Status(effect.value.lower()),
                         ),
-                        Priority(
-                            dex_entry.priority,
-                            player.get_active_mon(self.src_idx).speed,
-                        ),
+                        Priority(dex_entry.priority, src_mon.speed),
                     )
                 else:
                     # TODO: Separate stat boosting effects from other effects
@@ -110,10 +128,30 @@ class MoveAction(Action):
                     )
                     if dex_entry.target == Target.SELF:
                         print(
-                            f"{player.get_active_mon(self.src_idx).name} {boost_name} its {effect.property.name} by {int(effect.value)}!"
+                            f"{src_mon.name} {boost_name} its {effect.property.name} by {int(effect.value)}!"
                         )
                     else:
                         print(
-                            f"{player.get_active_mon(self.src_idx).name} {boost_name} {target.name}'s {effect.property.name} by {effect.value}!"
+                            f"{src_mon.name} {boost_name} {target.name}'s {effect.property.name} by {effect.value}!"
                         )
                     effect.apply(target)
+
+        # Hazard setting: place a hazard layer on the opponent's side.
+        if dex_entry.hazard_set:
+            opponent_side = game_state.field_state.get_side(Player.opponent(self.player))
+            hazard_def = HAZARD_DEFS.get(dex_entry.hazard_set)
+            if hazard_def:
+                current = opponent_side.hazards.get(dex_entry.hazard_set, 0)
+                if current < hazard_def.max_layers:
+                    opponent_side.hazards[dex_entry.hazard_set] = current + 1
+                    print(f"{dex_entry.hazard_set} was set on the opposing side! (layer {current + 1})")
+                else:
+                    print(f"{dex_entry.hazard_set} is already at maximum layers!")
+
+        # Hazard removal: clear all hazards from the user's own side.
+        if dex_entry.hazard_remove:
+            my_side = game_state.field_state.get_side(self.player)
+            if my_side.hazards:
+                removed = list(my_side.hazards.keys())
+                my_side.hazards.clear()
+                print(f"{src_mon.name} cleared {', '.join(removed)} from the field!")

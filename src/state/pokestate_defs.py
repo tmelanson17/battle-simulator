@@ -158,6 +158,33 @@ EFFECTIVENESS = {
         Type.STEEL: 1.0,
     },
     Type.FAIRY: {Type.FIRE: 0.5, Type.FIGHTING: 2.0, Type.POISON: 0.5, Type.STEEL: 0.5},
+    Type.ROCK: {
+        Type.FIRE: 2.0,
+        Type.ICE: 2.0,
+        Type.FLYING: 2.0,
+        Type.BUG: 2.0,
+        Type.FIGHTING: 0.5,
+        Type.GROUND: 0.5,
+        Type.STEEL: 0.5,
+    },
+    Type.BUG: {
+        Type.FIRE: 0.5,
+        Type.GRASS: 2.0,
+        Type.FIGHTING: 0.5,
+        Type.FLYING: 0.5,
+        Type.GHOST: 0.5,
+        Type.STEEL: 0.5,
+        Type.PSYCHIC: 2.0,
+        Type.DARK: 2.0,
+        Type.FAIRY: 0.5,
+    },
+    Type.PSYCHIC: {
+        Type.FIGHTING: 2.0,
+        Type.POISON: 2.0,
+        Type.PSYCHIC: 0.5,
+        Type.DARK: 0.0,
+        Type.STEEL: 0.5,
+    },
 }
 
 
@@ -196,11 +223,25 @@ class Move:
     priority: int = 0
     target: Target = Target.OPPONENT
     target_effects: List[PokemonEffect] = field(default_factory=list)
+    hazard_set: Optional[str] = None   # name of the hazard this move places on the opponent's side
+    hazard_remove: bool = False        # if True, clears hazards from the user's own side
+    fixed_damage: Optional[str] = None  # "level" = damage equals attacker's level; None = normal formula
 
 
 # Do standard damage calculation
 def get_effectiveness(attacking_type: Type, defending_type: Type) -> float:
     return EFFECTIVENESS.get(attacking_type, {}).get(defending_type, 1.0)
+
+
+@dataclass
+class SwitchInEvent:
+    """
+    Emitted by SwitchIn.execute() *before* switch_pokemon() is called.
+    Listeners (e.g. PursuitListener) can react to an impending switch while the
+    switching-out Pokemon is still the active mon.
+    """
+    player: "Player"  # the player whose Pokemon is switching OUT
+    slot: int         # the active slot index being vacated
 
 
 # Calculate damage dealt by a move
